@@ -74,3 +74,32 @@ val SizeF.bigger: Float
     get() = max(this.width, this.height)
 val SizeF.smaller: Float
     get() = min(this.width, this.height)
+
+/**
+ * Classify sensor type based on focal length and sensor size from Camera2 CameraCharacteristics
+ */
+fun classifySensorType(
+    focalLengths: FloatArray?,
+    sensorSize: SizeF?
+): PigeonSensorType {
+    if (focalLengths == null || focalLengths.isEmpty() || sensorSize == null) {
+        return PigeonSensorType.UNKNOWN
+    }
+
+    // To get valid focal length standards we have to upscale to the 35mm measurement (film standard)
+    val cropFactor = Size35mm.bigger / sensorSize.bigger
+
+    val containsTelephoto =
+        focalLengths.any { l -> (l * cropFactor) > 35 } // TODO: Telephoto lenses are > 85mm, but we don't have anything between that range..
+    val containsWideAngle =
+        focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
+    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 24 }
+
+    if (containsTelephoto)
+        return PigeonSensorType.TELEPHOTO
+    if (containsWideAngle)
+        return PigeonSensorType.WIDEANGLE
+    if (containsUltraWideAngle)
+        return PigeonSensorType.ULTRAWIDEANGLE
+    return PigeonSensorType.UNKNOWN
+}

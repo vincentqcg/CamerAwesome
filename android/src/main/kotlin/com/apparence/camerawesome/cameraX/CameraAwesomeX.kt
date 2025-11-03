@@ -3,10 +3,12 @@ package com.apparence.camerawesome.cameraX
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.location.Location
 import android.os.*
 import android.util.Log
@@ -28,6 +30,7 @@ import com.apparence.camerawesome.buttons.PhysicalButtonsHandler
 import com.apparence.camerawesome.buttons.PlayerService
 import com.apparence.camerawesome.models.FlashMode
 import com.apparence.camerawesome.sensors.SensorOrientationListener
+import com.apparence.camerawesome.utils.classifySensorType
 import com.apparence.camerawesome.utils.isMultiCamSupported
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -548,11 +551,94 @@ class CameraAwesomeX : CameraInterface, FlutterPlugin, ActivityAware {
     }
 
     override fun getFrontSensors(): List<PigeonSensorTypeDevice> {
-        TODO("Not yet implemented")
+        return getSensorsByLensFacing(CameraCharacteristics.LENS_FACING_FRONT)
     }
 
     override fun getBackSensors(): List<PigeonSensorTypeDevice> {
-        TODO("Not yet implemented")
+        return getSensorsByLensFacing(CameraCharacteristics.LENS_FACING_BACK)
+    }
+
+    /**
+     * Enumerate sensors by lens facing using Camera2 API
+     * This provides access to physical cameras that CameraX might not expose directly
+     */
+    private fun getSensorsByLensFacing(lensFacing: Int): List<PigeonSensorTypeDevice> {
+        if (activity == null) {
+            Log.w(CamerawesomePlugin.TAG, "Activity is null, cannot enumerate sensors")
+            return emptyList()
+        }
+
+        val sensors = mutableListOf<PigeonSensorTypeDevice>()
+        
+        try {
+            val cameraManager = activity!!.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            
+            for (cameraId in cameraManager.cameraIdList) {
+                try {
+                    val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+                    
+                    // Filter by lens facing
+                    val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+                    if (facing != lensFacing) continue
+                    
+                    // Get focal length to classify sensor type
+                    val focalLengths = characteristics.get(
+                        CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                    )
+                    
+                    // Get sensor size for classification
+                    val sensorSize = characteristics.get(
+                        CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
+                    )
+                    
+                    // Classify sensor type
+                    val sensorType = classifySensorType(focalLengths, sensorSize)
+                    
+                    // Check flash availability
+                    val hasFlash = characteristics.get(
+                        CameraCharacteristics.FLASH_INFO_AVAILABLE
+                    ) ?: false
+                    
+                    // Get ISO range (use max ISO as the representative value)
+                    val isoRange = characteristics.get(
+                        CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE
+                    )
+                    val iso = isoRange?.upper?.toDouble() ?: 0.0
+                    
+                    // Build sensor name
+                    val sensorName = buildSensorName(cameraId, sensorType)
+                    
+                    sensors.add(
+                        PigeonSensorTypeDevice(
+                            sensorType = sensorType,
+                            name = sensorName,
+                            iso = iso,
+                            flashAvailable = hasFlash,
+                            uid = cameraId
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(CamerawesomePlugin.TAG, "Error reading camera $cameraId characteristics", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(CamerawesomePlugin.TAG, "Error enumerating sensors", e)
+        }
+        
+        return sensors
+    }
+
+    /**
+     * Build a human-readable sensor name based on camera ID and sensor type
+     */
+    private fun buildSensorName(cameraId: String, sensorType: PigeonSensorType): String {
+        return when (sensorType) {
+            PigeonSensorType.ULTRAWIDEANGLE -> "Ultra-wide Camera"
+            PigeonSensorType.WIDEANGLE -> "Wide-angle Camera"
+            PigeonSensorType.TELEPHOTO -> "Telephoto Camera"
+            PigeonSensorType.TRUEDEPTH -> "TrueDepth Camera"
+            PigeonSensorType.UNKNOWN -> "Camera $cameraId"
+        }
     }
 
     override fun pauseVideoRecording() {
