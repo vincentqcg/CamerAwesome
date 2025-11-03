@@ -35,24 +35,7 @@ fun Camera2CameraInfo.getSensorType(): PigeonSensorType {
     val sensorSize =
         this.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)!!
 
-    // To get valid focal length standards we have to upscale to the 35mm measurement (film standard)
-    val cropFactor = Size35mm.bigger / sensorSize.bigger
-
-
-    val containsTelephoto =
-        focalLengths.any { l -> (l * cropFactor) > 35 } // TODO: Telephoto lenses are > 85mm, but we don't have anything between that range..
-    // val containsNormalLens = focalLengths.any { l -> (l * cropFactor) > 35 && (l * cropFactor) <= 55 }
-    val containsWideAngle =
-        focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
-    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 24 }
-
-    if (containsTelephoto)
-        return PigeonSensorType.TELEPHOTO
-    if (containsWideAngle)
-        return PigeonSensorType.WIDEANGLE
-    if (containsUltraWideAngle)
-        return PigeonSensorType.ULTRAWIDEANGLE
-    return PigeonSensorType.UNKNOWN
+    return classifySensorType(focalLengths, sensorSize)
 }
 
 @ExperimentalCamera2Interop

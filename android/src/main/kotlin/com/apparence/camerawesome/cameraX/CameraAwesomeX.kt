@@ -571,7 +571,7 @@ class CameraAwesomeX : CameraInterface, FlutterPlugin, ActivityAware {
         val sensors = mutableListOf<PigeonSensorTypeDevice>()
         
         try {
-            val cameraManager = activity!!.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraManager = activity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
             
             for (cameraId in cameraManager.cameraIdList) {
                 try {
