@@ -405,69 +405,65 @@ class CamerawesomePlugin {
   /// The list contains the back and front sensors
   /// with their name, type, uid, iso and flash availability
   ///
-  /// Only available on iOS for now
+  /// Available on iOS and Android (API 21+)
   static Future<SensorDeviceData> getSensors() async {
-    if (Platform.isAndroid) {
-      return Future.value(SensorDeviceData());
-    } else {
-      // Can't use getter with pigeon, so we have to map the data manually...
-      final frontSensors = await CameraInterface().getFrontSensors();
-      final backSensors = await CameraInterface().getBackSensors();
+    // Can't use getter with pigeon, so we have to map the data manually...
+    final frontSensors = await CameraInterface().getFrontSensors();
+    final backSensors = await CameraInterface().getBackSensors();
 
-      final frontSensorsData = frontSensors
-          .map(
-            (data) => SensorTypeDevice(
-              flashAvailable: data!.flashAvailable,
-              iso: data.iso,
-              name: data.name,
-              uid: data.uid,
-              sensorType: SensorType.values.firstWhere(
-                (element) => element.name == data.sensorType.name,
-              ),
+    final frontSensorsData = frontSensors
+        .map(
+          (data) => SensorTypeDevice(
+            flashAvailable: data!.flashAvailable,
+            iso: data.iso,
+            name: data.name,
+            uid: data.uid,
+            sensorType: SensorType.values.firstWhere(
+              (element) => element.name == data.sensorType.name,
             ),
-          )
-          .toList();
-      final backSensorsData = backSensors
-          .map(
-            (data) => SensorTypeDevice(
-              flashAvailable: data!.flashAvailable,
-              iso: data.iso,
-              name: data.name,
-              uid: data.uid,
-              sensorType: SensorType.values.firstWhere(
-                (element) => element.name == data.sensorType.name,
-              ),
+          ),
+        )
+        .toList();
+    final backSensorsData = backSensors
+        .map(
+          (data) => SensorTypeDevice(
+            flashAvailable: data!.flashAvailable,
+            iso: data.iso,
+            name: data.name,
+            uid: data.uid,
+            sensorType: SensorType.values.firstWhere(
+              (element) => element.name == data.sensorType.name,
             ),
-          )
-          .toList();
+          ),
+        )
+        .toList();
 
-      return SensorDeviceData(
-        ultraWideAngle: backSensorsData
-            .where(
-              (element) => element.sensorType == SensorType.ultraWideAngle,
-            )
-            .toList()
-            .firstOrNull,
-        telephoto: backSensorsData
-            .where(
-              (element) => element.sensorType == SensorType.telephoto,
-            )
-            .toList()
-            .firstOrNull,
-        wideAngle: backSensorsData
-            .where(
-              (element) => element.sensorType == SensorType.wideAngle,
-            )
-            .toList()
-            .firstOrNull,
-        trueDepth: frontSensorsData
-            .where(
-              (element) => element.sensorType == SensorType.trueDepth,
-            )
-            .toList()
-            .firstOrNull,
-      );
-    }
+    return SensorDeviceData(
+      ultraWideAngle: backSensorsData
+          .where(
+            (element) => element.sensorType == SensorType.ultraWideAngle,
+          )
+          .toList()
+          .firstOrNull,
+      telephoto: backSensorsData
+          .where(
+            (element) => element.sensorType == SensorType.telephoto,
+          )
+          .toList()
+          .firstOrNull,
+      wideAngle: backSensorsData
+          .where(
+            (element) => element.sensorType == SensorType.wideAngle,
+          )
+          .toList()
+          .firstOrNull,
+      trueDepth: frontSensorsData
+          .where(
+            (element) => element.sensorType == SensorType.trueDepth,
+          )
+          .toList()
+          .firstOrNull,
+    );
   }
 
   // ---------------------------------------------------
