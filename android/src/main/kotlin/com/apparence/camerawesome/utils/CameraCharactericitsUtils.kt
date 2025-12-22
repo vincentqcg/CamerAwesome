@@ -35,24 +35,7 @@ fun Camera2CameraInfo.getSensorType(): PigeonSensorType {
     val sensorSize =
         this.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)!!
 
-    // To get valid focal length standards we have to upscale to the 35mm measurement (film standard)
-    val cropFactor = Size35mm.bigger / sensorSize.bigger
-
-
-    val containsTelephoto =
-        focalLengths.any { l -> (l * cropFactor) > 35 } // TODO: Telephoto lenses are > 85mm, but we don't have anything between that range..
-    // val containsNormalLens = focalLengths.any { l -> (l * cropFactor) > 35 && (l * cropFactor) <= 55 }
-    val containsWideAngle =
-        focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
-    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 24 }
-
-    if (containsTelephoto)
-        return PigeonSensorType.TELEPHOTO
-    if (containsWideAngle)
-        return PigeonSensorType.WIDEANGLE
-    if (containsUltraWideAngle)
-        return PigeonSensorType.ULTRAWIDEANGLE
-    return PigeonSensorType.UNKNOWN
+    return classifySensorType(focalLengths, sensorSize)
 }
 
 @ExperimentalCamera2Interop
@@ -74,3 +57,53 @@ val SizeF.bigger: Float
     get() = max(this.width, this.height)
 val SizeF.smaller: Float
     get() = min(this.width, this.height)
+
+/**
+ * Classify sensor type based on focal length and sensor size from Camera2 CameraCharacteristics.
+ *
+ * The classification is performed by converting the provided focal lengths to their 35mm-equivalent
+ * values using a crop factor derived from the physical sensor size:
+ *
+ * `cropFactor = Size35mm.bigger / sensorSize.bigger`
+ *
+ * where `Size35mm` is 36x24mm (the 135 film / "full-frame" standard) and `sensorSize` is the
+ * physical size reported by the camera. Each entry in `focalLengths` (in millimeters) is
+ * multiplied by this crop factor to obtain a 35mm-equivalent focal length. The sensor is then
+ * categorized as:
+ *
+ * * Ultra-wide: any 35mm-equivalent focal length **< 20mm**
+ * * Wide-angle: any 35mm-equivalent focal length in the range **20mm–35mm** (inclusive)
+ * * Telephoto: any 35mm-equivalent focal length **> 35mm**
+ *
+ * If none of the available focal lengths fall into these ranges, or if focal length or sensor
+ * size information is missing, the sensor type is reported as [PigeonSensorType.UNKNOWN].
+ *
+ * @param focalLengths Array of available focal lengths in millimeters from camera characteristics
+ * @param sensorSize Physical sensor size from camera characteristics
+ * @return Classified sensor type (TELEPHOTO, WIDEANGLE, ULTRAWIDEANGLE, or UNKNOWN)
+ */
+fun classifySensorType(
+    focalLengths: FloatArray?,
+    sensorSize: SizeF?
+): PigeonSensorType {
+    if (focalLengths == null || focalLengths.isEmpty() || sensorSize == null) {
+        return PigeonSensorType.UNKNOWN
+    }
+
+    // To get valid focal length standards we have to upscale to the 35mm measurement (film standard)
+    val cropFactor = Size35mm.bigger / sensorSize.bigger
+
+    val containsTelephoto =
+        focalLengths.any { l -> (l * cropFactor) > 35 } // TODO: Telephoto lenses are > 85mm, but we don't have anything between that range..
+    val containsWideAngle =
+        focalLengths.any { l -> (l * cropFactor) >= 20 && (l * cropFactor) <= 35 }
+    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 20 }
+
+    if (containsTelephoto)
+        return PigeonSensorType.TELEPHOTO
+    if (containsWideAngle)
+        return PigeonSensorType.WIDEANGLE
+    if (containsUltraWideAngle)
+        return PigeonSensorType.ULTRAWIDEANGLE
+    return PigeonSensorType.UNKNOWN
+}
