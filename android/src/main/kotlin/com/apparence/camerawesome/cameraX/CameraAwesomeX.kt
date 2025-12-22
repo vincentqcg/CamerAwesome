@@ -563,7 +563,8 @@ class CameraAwesomeX : CameraInterface, FlutterPlugin, ActivityAware {
      * This provides access to physical cameras that CameraX might not expose directly
      */
     private fun getSensorsByLensFacing(lensFacing: Int): List<PigeonSensorTypeDevice> {
-        if (activity == null) {
+        val currentActivity = activity
+        if (currentActivity == null) {
             Log.w(CamerawesomePlugin.TAG, "Activity is null, cannot enumerate sensors")
             return emptyList()
         }
@@ -571,7 +572,7 @@ class CameraAwesomeX : CameraInterface, FlutterPlugin, ActivityAware {
         val sensors = mutableListOf<PigeonSensorTypeDevice>()
         
         try {
-            val cameraManager = activity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraManager = currentActivity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
             
             for (cameraId in cameraManager.cameraIdList) {
                 try {

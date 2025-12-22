@@ -59,7 +59,28 @@ val SizeF.smaller: Float
     get() = min(this.width, this.height)
 
 /**
- * Classify sensor type based on focal length and sensor size from Camera2 CameraCharacteristics
+ * Classify sensor type based on focal length and sensor size from Camera2 CameraCharacteristics.
+ *
+ * The classification is performed by converting the provided focal lengths to their 35mm-equivalent
+ * values using a crop factor derived from the physical sensor size:
+ *
+ * `cropFactor = Size35mm.bigger / sensorSize.bigger`
+ *
+ * where `Size35mm` is 36x24mm (the 135 film / "full-frame" standard) and `sensorSize` is the
+ * physical size reported by the camera. Each entry in `focalLengths` (in millimeters) is
+ * multiplied by this crop factor to obtain a 35mm-equivalent focal length. The sensor is then
+ * categorized as:
+ *
+ * * Ultra-wide: any 35mm-equivalent focal length **< 20mm**
+ * * Wide-angle: any 35mm-equivalent focal length in the range **20mm–35mm** (inclusive)
+ * * Telephoto: any 35mm-equivalent focal length **> 35mm**
+ *
+ * If none of the available focal lengths fall into these ranges, or if focal length or sensor
+ * size information is missing, the sensor type is reported as [PigeonSensorType.UNKNOWN].
+ *
+ * @param focalLengths Array of available focal lengths in millimeters from camera characteristics
+ * @param sensorSize Physical sensor size from camera characteristics
+ * @return Classified sensor type (TELEPHOTO, WIDEANGLE, ULTRAWIDEANGLE, or UNKNOWN)
  */
 fun classifySensorType(
     focalLengths: FloatArray?,
