@@ -75,8 +75,8 @@ fun classifySensorType(
     val containsTelephoto =
         focalLengths.any { l -> (l * cropFactor) > 35 } // TODO: Telephoto lenses are > 85mm, but we don't have anything between that range..
     val containsWideAngle =
-        focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
-    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 24 }
+        focalLengths.any { l -> (l * cropFactor) >= 20 && (l * cropFactor) <= 35 }
+    val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 20 }
 
     if (containsTelephoto)
         return PigeonSensorType.TELEPHOTO

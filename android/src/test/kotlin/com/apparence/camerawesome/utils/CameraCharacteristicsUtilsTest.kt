@@ -32,12 +32,12 @@ class CameraCharacteristicsUtilsTest {
         }
 
         // Simulate the classification logic
-        val sensorDiagonal = kotlin.math.sqrt(
-            sensorWidth * sensorWidth + sensorHeight * sensorHeight
-        )
-        val cropFactor = 43.27f / sensorDiagonal
+        val sensorMaxSide = kotlin.math.max(sensorWidth, sensorHeight)
+        val cropFactor = 36f / sensorMaxSide
 
         val containsTelephoto = focalLengths.any { l -> (l * cropFactor) > 35 }
+
+        val containsWideAngle = focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
         val containsWideAngle = focalLengths.any { l -> (l * cropFactor) >= 24 && (l * cropFactor) <= 35 }
         val containsUltraWideAngle = focalLengths.any { l -> (l * cropFactor) < 24 }
 
@@ -152,7 +152,7 @@ class CameraCharacteristicsUtilsTest {
 
     @Test
     fun testClassifySensorType_realWorldPixel7Pro_telephoto() {
-        // Pixel 7 Pro telephoto: 48mm equivalent (5x optical)
+        // Pixel 7 Pro telephoto: 48mm equivalent
         // Crop factor ~5.7
         // Physical focal length: 48 / 5.7 ≈ 8.4mm
         val result = testClassification(floatArrayOf(8.4f), 5.8f, 4.3f)
